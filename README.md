@@ -1,2 +1,21 @@
-# trie-measure
-Tools related to the trie measure (computation of the measure, data structure for a sequence of sets, etc. )
+# Trie measure and applications
+
+Tools related to the trie-based measures (computation of the measures, data structures for a sequence of sets, etc. )
+
+### Funding
+
+Funded by the European Union (ERC, REGINDEX, 101039208). Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Research Council. Neither the European Union nor the granting authority can be held responsible for them.
+
+### Install
+
+~~~~
+make
+~~~~
+
+### Run
+
+To compute a best shift of fixed-height tries for a set of integers:
+~~~~
+grammar-based/best-shift < data/tries.ex1.txt
+~~~~
+
