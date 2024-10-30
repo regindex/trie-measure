@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <iostream>
+
 
 typedef struct node {
 	int size;
@@ -17,3 +19,4 @@ node *create();
 node *duplicate(node *x);
 node *add(int i, int j, int d, node *x);
 void printSums(int i, int j, node *x, int sum);
+int getSum(int i, node *x, int sum);

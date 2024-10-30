@@ -1,9 +1,9 @@
-TARGET=grammar-based/best-shift
+TARGET=trie-measure
 
 all: ${TARGET}
 
 clean:
 	rm -f ${TARGET}
 
-grammar-based/best-shift:  grammar-based/best-shift.cpp grammar-based/fourier-grammar.c grammar-based/fourier-grammar.h
-	g++ grammar-based/best-shift.cpp grammar-based/fourier-grammar.c -O3 -o $@
+trie-measure:  trie_measure.cpp internal/grammar-based/fourier-grammar.cpp
+	g++ trie_measure.cpp internal/grammar-based/fourier-grammar.cpp -std=c++14 -march=native -O3 -o $@

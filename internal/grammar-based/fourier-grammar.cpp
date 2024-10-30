@@ -1,4 +1,4 @@
-#include "fourier-grammar.h"
+#include "fourier-grammar.hpp"
 
 
 node *create() {
@@ -64,6 +64,7 @@ void printSums(int i, int j, node *x, int sum) {
 
 	if (x -> size == 1) {
 		printf("%i ", sum + (x -> weight));
+		putchar('\n');
 	} else if (j < (x -> size) / 2) {
 		printSums(i, j, x -> left, sum + (x -> weight));
 	} else if (i >= (x -> size) / 2) {
@@ -74,4 +75,17 @@ void printSums(int i, int j, node *x, int sum) {
 	}
 
 	return;
+}
+
+int getSum(int i, node *x, int sum) {
+
+	if (x -> size == 1) {
+		return sum + (x -> weight);
+	} else if (i < (x -> size) / 2) {
+		return getSum(i, x -> left, sum + (x -> weight));
+	} else if (i >= (x -> size) / 2) {
+		return getSum(i - (x -> size) / 2, x -> right, sum + (x -> weight));
+	}
+
+	return -1;
 }
