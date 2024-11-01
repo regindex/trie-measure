@@ -14,8 +14,8 @@ make
 
 ### Run
 
-To compute a best shift of fixed-height tries for a set of integers:
+To compute a best shift of fixed-height tries for a collection of sets:
 ~~~~
-grammar-based/best-shift < data/tries.ex1.txt
+./trie-measure < data/book_ratings.inp
 ~~~~
 

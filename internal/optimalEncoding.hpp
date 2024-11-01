@@ -13,13 +13,13 @@ using namespace std;
 typedef uint64_t ulint;
 typedef int64_t lint;
   
-class optimalEncoding
+class optimalOrderedEncoding
 {
 public:
-    optimalEncoding(){};
-    ~optimalEncoding(){};
+    optimalOrderedEncoding(){};
+    ~optimalOrderedEncoding(){};
 
-    optimalEncoding(istream& input): U(0)
+    optimalOrderedEncoding(istream& input): U(0)
     {
         /* input sets */
         vector< vector<ulint> > S = load( cin );
@@ -31,7 +31,7 @@ public:
         // print_matrix(A,"A");
     }
 
-    ulint compute_optimal_ordered_encoding()
+    ulint encoding_size()
     {
         /* computing the constants for the dynamic programming algorithm */
         vector< vector<lint> > T = compute_T(this->A, this->n);
@@ -42,7 +42,19 @@ public:
         return encoding_size;
     }
 
-    ulint compute_optimal_ordered_shifted_encoding()
+    string get_encoding_tree()
+    {
+        /* computing the constants for the dynamic programming algorithm */
+        vector< vector<lint> > T = compute_T(this->A, this->n);
+        //print_matrix(T,"T");
+        /* computing the optimal prefix-free ordered encoding represented
+           as a binary tree */
+        string binTree = compute_optimal_ordered_encoding_(T);
+
+        return binTree;
+    }
+
+    ulint best_shift_encoding_size()
     {
         /* double A sets size */
         double_A(this->A);
@@ -54,6 +66,20 @@ public:
         ulint encoding_size = compute_optimal_ordered_shifted_encoding_size_(T);
 
         return encoding_size;
+    }
+
+    string best_shift_encoding_tree()
+    {
+        /* double A sets size */
+        double_A(this->A);
+        //print_matrix(A,"A");
+        /* computing the constants for the dynamic programming algorithm */
+        vector< vector<lint> > T = compute_T(A, n);
+        //print_matrix(T,"T");
+        /* computing the size of the optimal ordered encoding */
+        string binTree = compute_optimal_ordered_shifted_encoding_(T);
+
+        return binTree;
     }
 
     ulint no_sets()
@@ -183,7 +209,7 @@ private:
         return T;
     }
 
-    ulint compute_optimal_ordered_encoding_size_(const vector< vector<lint> >& T)
+    vector< vector<ulint> > dynamic_programming_algorithm(const vector< vector<lint> >& T, ulint U)
     {
         /* init dynamic programming matrix */
         vector< vector<ulint> > D;
@@ -208,37 +234,49 @@ private:
                 D[i][j] = T[i+1][j+1] + Min;
             }
 
-        //print_matrix(D,"D");
+        return D;
+    }
+
+    ulint compute_optimal_ordered_encoding_size_(const vector< vector<lint> >& T)
+    {
+        /* init and compute dynamic programming matrix */
+        vector< vector<ulint> > D = dynamic_programming_algorithm(T, this->U);
 
         return D[0][U-1] - T[1][U];     
     }
 
-    ulint compute_optimal_ordered_shifted_encoding_size_(const vector< vector<lint> >& T)
+    string compute_tree(vector< vector<ulint> >& D, ulint U, ulint i, ulint j)
     {
-        /* init dynamic programming matrix */
-        vector< vector<ulint> > D;
-        for(ulint i=0;i<U;++i)
-            D.push_back(vector<ulint>(U,0));
-        /* init matrix diagonal */
-        for(ulint i=0;i<U;++i)
-            D[i][i] = T[i+1][i+1];
-
-        /* dynamic programming recursion */
-        for(ulint j=1;j<U;++j)
-            for(lint i=j-1;i>=0;--i)
+        if(i == j){ return to_string(i%U); }
+        else
+        {
+            ulint c = D[i][i] + D[i+1][j];
+            ulint argmin = i+1;
+            for(ulint k = i+1;k<=j;++k)
             {
-                ulint k = i + 1;
-                ulint Min = D[i][k-1] + D[k][j];
-                for(lint k = i + 2; k <= j; ++k)
-                {
-                    ulint tmp = D[i][k-1] + D[k][j];
-                    if(tmp < Min)
-                        Min = tmp;
-                }
-                D[i][j] = T[i+1][j+1] + Min;
+                ulint tmp = D[i][k-1] + D[k][j];
+                if(tmp < c){ c = tmp; argmin = k; }
             }
 
-        //print_matrix(D,"D");
+            return "(" + compute_tree(D,U,i,argmin-1) + ")(" + compute_tree(D,U,argmin,j) + ")";
+        }
+    }
+
+    string compute_optimal_ordered_encoding_(const vector< vector<lint> >& T)
+    {
+        /* init and compute dynamic programming matrix */
+        vector< vector<ulint> > D = dynamic_programming_algorithm(T, this->U);
+
+        string binTree = "";
+        binTree = compute_tree(D,U,0,(this->U)-1);
+
+        return binTree;  
+    }
+
+    ulint compute_optimal_ordered_shifted_encoding_size_(const vector< vector<lint> >& T)
+    {
+        /* init and compute dynamic programming matrix */
+        vector< vector<ulint> > D = dynamic_programming_algorithm(T, this->U);
 
         ulint c = D[0][(U/2)-1];
         for(ulint i=1;i<U/2;++i)
@@ -247,7 +285,27 @@ private:
             if( tmp < c ){ c = tmp; }
         }
 
-        return c - T[1][(U/2)-1];      
+        return c - T[1][(U/2)];      
+    }
+
+    string compute_optimal_ordered_shifted_encoding_(const vector< vector<lint> >& T)
+    {
+        /* init and compute dynamic programming matrix */
+        vector< vector<ulint> > D = dynamic_programming_algorithm(T, this->U);
+
+        /* find best shifted submatrix */
+        ulint c = D[0][(this->U/2)-1];
+        ulint argmin = 0;
+        for(ulint a = 1;a<(this->U/2);++a)
+        {
+            ulint tmp = D[a][a+(this->U/2)-1];
+            if(tmp < c){ c = tmp; argmin = a; }
+        }
+
+        string binTree = "";
+        binTree = compute_tree(D,U/2,argmin,argmin+(this->U/2)-1);
+
+        return binTree;   
     }
 };
 

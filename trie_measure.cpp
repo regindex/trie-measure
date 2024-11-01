@@ -15,6 +15,7 @@ struct Args
     bool grammar = false;
     bool optimalOrdered = false;
     bool optimalOrderedShifted = false;
+    bool binTree = false;
     bool all = false;
 };
 
@@ -34,6 +35,9 @@ void print_help(char** argv) {
         << "    -s, --optimal-shifted-ordered-encoding" << endl 
         << "        Compute the optimal ordered trie encoding for the best shift, Default: False" << endl 
 
+        << "    -t, --get-tree" << endl 
+        << "        Compute the binary tree encoding the ordered prefix encoding (only works with the -o/-s flags), Default: False" << endl 
+
         << "    -a, --all-shifts" << endl 
         << "        Compute the trie measure for all U shifts, Default: False" << endl 
         << endl;
@@ -42,7 +46,7 @@ void print_help(char** argv) {
 // function for parsing the input arguments
 void parseArgs(int argc, char** argv, Args& arg) {
 
-    if(argc < 2){ print_help(argv); exit(1); }
+    if(argc < 1){ print_help(argv); exit(1); }
 
     // read and parse input parameters
     for(size_t i=1;i<argc;++i)
@@ -60,6 +64,10 @@ void parseArgs(int argc, char** argv, Args& arg) {
         else if( param == "-s" or param == "--optimal-shifted-ordered-encoding" )
         {
             arg.optimalOrderedShifted = true;
+        }
+        else if( param == "-t" or param == "--get-tree" )
+        {
+            arg.binTree = true;
         }
         else if( param == "-a" or param == "--all-shifts" )
         {
@@ -82,6 +90,7 @@ void parseArgs(int argc, char** argv, Args& arg) {
 
     if( (arg.grammar and arg.optimalOrdered) or (arg.grammar and arg.optimalOrderedShifted) ){ cerr << "Select either -g or -o/-s flag! exiting..." << endl; exit(1); }
     if( arg.optimalOrdered and arg.optimalOrderedShifted ){ arg.optimalOrderedShifted = true; arg.optimalOrdered = false; cout << "-s flag overriding -o flag" << endl; }
+    if( arg.binTree and (arg.optimalOrdered == false and arg.optimalOrderedShifted == false) ){ cerr << "Select -t togheter with either the -o/-s flag! exiting..." << endl; exit(1); }
     if( arg.all ){ arg.grammar = true; cout << "forcing grammar-based algorithm" << endl; }
 }
 
@@ -94,19 +103,25 @@ int main(int argc, char* argv[]){
     if(arg.optimalOrdered or arg.optimalOrderedShifted)
     {
         // load input sets
-        optimalEncoding opt(cin);
+        optimalOrderedEncoding opt(cin);
 
         if(arg.optimalOrdered)
         {
             cout << "estimate optimal ordered encoding size..." << endl;
             cout << "no. of sets = " << opt.no_sets() << endl;
-            cout << "optimal ordered encoding size = " << opt.compute_optimal_ordered_encoding() << endl;
+            if(arg.binTree)
+                cout << "prefix-free encoding tree = " << opt.get_encoding_tree() << endl;
+            else
+                cout << "optimal ordered encoding size = " << opt.encoding_size() << endl;
         }
         else
         {
             cout << "estimate optimal shifted ordered encoding size..." << endl;
             cout << "no. of sets = " << opt.no_sets() << endl;
-            cout << "optimal shifted ordered encoding size = " << opt.compute_optimal_ordered_shifted_encoding() << endl;
+            if(arg.binTree)
+                cout << "prefix-free encoding tree = " << opt.best_shift_encoding_tree() << endl;
+            else
+                cout << "optimal shifted ordered encoding size = " << opt.best_shift_encoding_size() << endl;
         }
     }
     else
