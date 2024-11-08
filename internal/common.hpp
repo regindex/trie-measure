@@ -19,6 +19,14 @@ typedef bool boolt;
 */
 /* NAMESPACES SECTION */
 using namespace std;
-
+/* STRUCT STORING INPUT PARAMETERS */
+struct Args
+{
+    bool grammar = false;
+    bool optimalOrdered = false;
+    bool optimalOrderedShifted = false;
+    bool getEncoding = false;
+    bool all = false;
+};
 
 #endif

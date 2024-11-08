@@ -90,6 +90,8 @@ public:
 
     lint get_trie_measure(){ return best_cost; }
 
+    lint get_universe(){ return U; }
+
     void print_all_costs(){ printSums(0, x -> size - 1, x, 0); }
 
 private:
