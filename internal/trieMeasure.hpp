@@ -1,20 +1,8 @@
 #ifndef TRIE_MEASURE_HPP_
 #define TRIE_MEASURE_HPP_
 
-#include <iostream>
-#include <sstream>
-#include <vector>
-#include <string>
-#include <algorithm>
-#include <cmath>
-
+#include "common.hpp"
 #include "grammar-based/fourier-grammar.hpp"
-
-using namespace std;
-
-typedef uint64_t ulint;
-typedef int64_t lint;
-typedef bool boolt;
   
 class trieEncoding
 {

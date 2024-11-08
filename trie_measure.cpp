@@ -30,16 +30,16 @@ void print_help(char** argv) {
         << "        Run the grammar-based algorithm (more efficient when the universe is large), Default: False" << endl 
 
         << "    -o, --optimal-ordered-encoding" << endl 
-        << "        Compute the optimal ordered trie encoding size, Default: False" << endl 
+        << "        Compute the optimal ordered encoding size, Default: False" << endl 
 
         << "    -s, --optimal-shifted-ordered-encoding" << endl 
-        << "        Compute the optimal ordered trie encoding for the best shift, Default: False" << endl 
+        << "        Compute the optimal ordered encoding for the best shift, Default: False" << endl 
 
         << "    -t, --get-tree" << endl 
-        << "        Compute the binary tree encoding the ordered prefix encoding (only works with the -o/-s flags), Default: False" << endl 
+        << "        Compute the binary tree encoding the ordered prefix-free encoding (only works with the -o/-s flags), Default: False" << endl 
 
         << "    -a, --all-shifts" << endl 
-        << "        Compute the trie measure for all U shifts, Default: False" << endl 
+        << "        Compute the trie measure for all shifts in the input's universe, Default: False" << endl 
         << endl;
 }
 

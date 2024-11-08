@@ -1,17 +1,7 @@
 #ifndef OPT_ENCODING_HPP_
 #define OPT_ENCODING_HPP_
 
-#include <iostream>
-#include <sstream>
-#include <vector>
-#include <string>
-#include <algorithm>
-#include <cmath>
-
-using namespace std;
-
-typedef uint64_t ulint;
-typedef int64_t lint;
+#include "common.hpp"
   
 class optimalOrderedEncoding
 {
