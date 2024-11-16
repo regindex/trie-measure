@@ -111,7 +111,7 @@ private:
             }
         }
         // compute universe size
-        U = pow(2,ceil(log2(U)));
+        U = pow(2,ceil(log2(U+1)));
 
         return ret;
     }
