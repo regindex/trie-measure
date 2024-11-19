@@ -1,204 +1,267 @@
 #ifndef TRIE_MEASURE_HPP_
 #define TRIE_MEASURE_HPP_
 
-#include "common.hpp"
-#include "grammar-based/fourier-grammar.hpp"
-  
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include "common.h"
+
+using namespace std;
+
 class trieEncoding
 {
 public:
     trieEncoding(){};
     ~trieEncoding(){};
 
-    trieEncoding(istream& input, bool grammar_ = false): sigma(0), best_shift(0), best_cost(0)
-    {
-        /* input sets */
-        S = load( cin );
-        n = S.size();
-
-        bitwidth = ceil(log2(sigma));
-        U = pow(2,bitwidth);
+    trieEncoding(istream& input): best_shift(0), best_cost(0) {
+        S = load( input );
     }
 
-    ulint no_sets(){ return n; }
-
-    void compute_best_shift(boolt grammar = false, boolt all = false)
-    {
+    void compute_best_shift(boolt grammar = false, boolt print_all = false) {
         if( grammar )
         {
-            cout << "running grammar-based algorithm..." << endl;
-
-            lint i, j, k;
-            x = create();
-
-            for( i = 1; i < U; i <<= 1 )
-            {
-                for( k = 0; k < S.size(); ++k )
-                {
-                    int N = S[k].size();
-                    for( j = 0; j < N; ++j ) {
-                        lint current_leaf  = S[k][j];
-                        lint previous_leaf = S[k][(j+N-1)%N];
-
-                        lint gap = (current_leaf-previous_leaf+U-1)%U+1; 
-                        if( gap >= i ) {
-                            // Case 1: interval (gap) is too long (always costs 1 at this level regardless of shift)
-
-                            // add an interval covering the whole range
-                            x = add( 0, i-1, 1, x ); // unnecessary for finding a minimum
-                                                     // but just for computing the correct cost
-                            continue;
-                        }
-
-                        lint b = (i-(current_leaf%i))%i;
-                        lint e = (b+gap-1)%i;
-                        if( b <= e ) {
-                            // Case 2a: interval is contained in the current range [0..i-1]
-                            // 0              i-1
-                            // ...+----+.......
-                            //    b     e
-                            x = add( b, e, 1, x );
-                        } else {
-                            // Case 2b: interval crosses over the boundary of the current range [0..i-1]
-                            // 0              i-1
-                            // --+..........+--
-                            //   e          b
-                            x = add( b, i-1, 1, x );
-                            x = add( 0, e%i, 1, x );
-                        }
-                    }
-                }
-                x = duplicate(x);
-            }
-
-            best_shift = x->argmin;
-            best_cost = getSum(x -> argmin, x, 0);
-            //best_cost += this->S.size();
-            //printSums(x -> argmin, x -> argmin, x, 0);
-        }
-        else
-        {
-            /* convert sets to list of gaps */
-            vector<pair<lint,lint>> gaps = get_gaps_in_1_based_indexing(this->S,this->U);
-            /* */
-            tie(best_cost, best_shift) = improved_algorithm(gaps, this->sigma, this->bitwidth);
-            //best_cost += this->S.size();
+            solve<SegmentTree>( S, print_all );
+        } else {
+            solve<SimpleArray>( S, print_all ); 
         }
     }
 
-    lint get_best_shift(){ return best_shift; }
+    template <class T>
+    void solve( const vector< vector<lint> >& seqs, boolt print_all=false ) {
+        lint logu = get_log_universe( seqs );
+        vector< pair<lint,lint> > pairs = convert_into_pairs( seqs, (1<<logu) );
+        U = (1<<logu);
 
-    lint get_trie_measure(){ return best_cost; }
+        // main algorithm
+        T D;
+        D.initialize();
+        for( lint k = 1; k <= logu; ++k ) {
+            for( lint i = 0; i < pairs.size(); ++i ) {
+                vector< pair<lint,lint> > intervals = get_subintervals( pairs[i], k, (1<<logu) );
+                for( lint j = 0; j < intervals.size(); ++j ) {
+                    lint l = intervals[j].first;
+                    lint r = intervals[j].second;
+                    D.add( l, r );
+                }
+            } 
+            D.extend();
+        }
+        tie(best_shift, best_cost) = D.argmin(print_all);
+    }
 
-    lint get_universe(){ return U; }
+    // O(u+Nlogu)-time algorithm
+    struct SimpleArray {
+        void initialize( void ) {
+            Delta = vector<lint>(1,0);
+        }
+        void add( lint l, lint r ) {
+            Delta[l]++;
+            if( r < Delta.size() ) Delta[r]--;
+        }
+        void extend( void ) {
+            lint i = Delta.size();
+            lint s = 0;
+            for( lint a = 0; a < Delta.size(); ++a ) s += Delta[a];
 
-    void print_all_costs(){ printSums(0, x -> size - 1, x, 0); }
+            Delta.insert(Delta.end(), Delta.begin(), Delta.end()); // duplicate Delta
 
-private:
-    lint sigma, U, bitwidth; /* Universe size and bit width */
-    lint n;
-    lint best_shift, best_cost;
-    vector< vector<lint> > S; /* input sets */
-    node *x; /* root for grammar-based algorithm */
+            Delta[i] -= s;
+        }
+        pair<lint,lint> argmin( boolt print_all=false ) {
+            lint a_ = 0;
+            lint v_ = Delta[0];
+            lint v = Delta[0];
 
-    /* Load input file and compute universe size */
-    vector< vector<lint> > load( istream& in ) {
-        // input format: each line contains a set of integers
-        // e.g., 
-        //     1 7 8
-        //     1 8
-        vector< vector<lint> > ret;
+            if( print_all ) cout << v << endl;
+
+            for( lint a = 1; a < Delta.size(); ++a ) {
+                v += Delta[a];
+                if( v_ > v ) {
+                    a_ = a;
+                    v_ = v;
+                }
+
+                if( print_all ) cout << v << endl;
+            }
+            return make_pair(a_,v_);
+        }
+
+        private:
+        vector<lint> Delta;
+    };
+
+    // O(Nlog^2u)-time algorithm
+    struct SegmentTree {
+        void initialize( void ) {
+            root = reallocate_node(-1,-1,-1);
+            height = 1;
+        }
+
+        void add( lint l, lint r ) {
+            root = increment( root, l, r, height );
+        }
+
+        void extend( void ) {
+            root = reallocate_node(root,root,root);
+            height = height+1;
+        }
+
+        pair<lint,lint> argmin( boolt print_all=false ) {
+            if( print_all ) {
+                for( lint a = 0; a < (1<<(height-1)); ++a ) {
+                    cout << get_value(root,a,height) << endl;
+                }
+            }
+
+            // (argmin,min) can be obtained from the root node in O(1) 
+            return make_pair( node[root].argmin, node[root].min );
+        }
+
+        private:
+        lint root;
+        lint height;
+
+        struct node_t {
+            lint left;
+            lint right;
+
+            lint min;
+            lint argmin;
+            lint val;
+
+            lint ref;
+        };
+        vector<node_t> node;
+
+        lint reallocate_node( lint u, lint w_L, lint w_R ) {
+            lint v = node.size();
+            node_t w;
+            if( u != -1 ) {
+                node[u].ref--;
+                w.min    = node[u].min;
+                w.argmin = node[u].min;
+                w.val    = node[u].val;
+            } else {
+                w.val = w.min = w.argmin = 0;
+            }
+            w.left  = w_L;
+            w.right = w_R;
+            if( w_L != -1 ) node[w_L].ref++;
+            if( w_R != -1 ) node[w_R].ref++;
+            w.ref = 1;
+            node.push_back( w );
+            return v;
+        }
+
+        lint increment( lint v, lint l, lint r, lint h ) {
+            if( l >= r ) return v;
+            if( node[v].ref > 1 ) {
+                v = reallocate_node( v, node[v].left, node[v].right );
+            }
+            if( r - l == (1<<(h-1)) ) {
+                node[v].val++;
+                node[v].min++;
+                return v;
+            }
+
+            node[v].left  = increment( node[v].left ,      l                , min( r           , 1<<(h-2)), h-1 );
+            node[v].right = increment( node[v].right, max( l-(1<<(h-2)), 0 ),      r-(1<<(h-2))           , h-1 );
+            if( node[ node[v].left ].min <= node[ node[v].right ].min ) {
+                node[v].min    = node[ node[v].left ].min   + node[v].val;
+                node[v].argmin = node[ node[v].left ].argmin;
+            } else {
+                node[v].min    = node[ node[v].right ].min    + node[v].val;
+                node[v].argmin = node[ node[v].right ].argmin + (1<<(h-2));
+            }
+            return v;
+        }
+
+        // function for obtaining a specified value
+        lint get_value( lint v, lint a, lint h ) {
+            if( h == 1 ) {
+                return node[v].val;
+            }
+            if( a < (1<<(h-2)) ) {
+                return get_value( node[v].left , a           , h-1 );
+            } else {
+                return get_value( node[v].right, a-(1<<(h-2)), h-1 );
+            }
+        }
+    };
+
+    // util functions
+    vector<vector<lint> > load( istream& in ) {
+        vector<vector<lint> > seqs;
         string line;
         while( getline( in, line ) ) {
             stringstream ss( line );
-            vector<lint> s;
-            lint x;
-            while( ss >> x ) {
-                s.push_back(x);
-                if( x < 0 ){ cerr << "ERROR: out of range" << endl; exit(1); }
-                if( x > sigma ){ sigma = x; }
+            vector<lint> seq;
+            lint v;
+            while( ss >> v ) {
+                seq.push_back(v);
             }
-            if( !s.empty() ) {
-                sort( s.begin(), s.end() );
-                ret.push_back(s);
+            sort( seq.begin(), seq.end() );
+            if( !seq.empty() ) seqs.push_back(seq);
+        }
+        return seqs;
+    }
+
+    lint get_log_universe( const vector< vector<lint> >& seqs ) {
+        lint m = 0;
+        for( lint i = 0; i < seqs.size(); ++i ) {
+            for( lint j = 0; j < seqs[i].size(); ++j ) {
+                if( m < seqs[i][j] ) m = seqs[i][j];
             }
         }
+        lint logu = 0;
+        while( (1<<logu) <= m ) {
+            ++logu;
+        }
+        return logu;
+    }
 
+    vector< pair<lint,lint> > convert_into_pairs( const vector< vector<lint> >& seqs, lint u ) {
+        vector< pair<lint,lint> > pairs;
+        for( lint i = 0; i < seqs.size(); ++i ) {
+            for( lint j = 1; j < seqs[i].size(); ++j ) {
+                pairs.push_back( make_pair( seqs[i][j-1], seqs[i][j] ) );
+            }
+            pairs.push_back( make_pair( seqs[i][seqs[i].size()-1], seqs[i][0]+u ) );
+        }
+        return pairs;
+    }
+
+    vector< pair<lint,lint> > get_subintervals( const pair<lint,lint>& p, lint k, lint u ) {
+        lint x = p.first;
+        lint y = p.second;
+
+        vector< pair<lint,lint> > ret;
+        if( x >= y ) return ret;
+
+        lint l = ( 2*u - p.second ) % (1<<(k-1));
+        lint r = l + (y-x);
+        
+        if( y - x >= (1<<(k-1)) ) {
+            ret.push_back( make_pair( 0, (1<<(k-1)) ) );
+        } else if( r <= (1<<(k-1)) ) {
+            ret.push_back( make_pair( l, r ) );
+        } else {
+            ret.push_back( make_pair( 0, r-(1<<(k-1)) ) );
+            ret.push_back( make_pair( l, (1<<(k-1)) ) );
+        }   
         return ret;
     }
 
-    // Sets are in 0-based indexing but gaps will be in 1-based indexing
-    // Assumes sets are sorted and contain no duplicates
-    vector<pair<lint,lint>> get_gaps_in_1_based_indexing(const vector<vector<lint>>& sets, lint u)
-    {
-        vector<pair<lint,lint>> gaps;
-        for(const vector<lint>& set : sets){
-            for(lint i = 0; i < set.size(); i++){
-                lint x = set[i];
-                lint y = set[(i+1) % set.size()];
-                if(y <= x) y += u;
-                gaps.push_back({1+x,1+y});
-            }
-        }
-        return gaps;
-    }
+    lint get_best_shift(){ return best_shift; }
+    lint get_trie_measure(){ return best_cost; }
+    lint get_universe(){ return U; }
+    lint no_sets(){ return S.size(); }
 
-    // O(u + N log u) algorithm. N is the number of gaps and u is the universe size.
-    // Returns the number of EDGES in the trie.
-    pair<lint,lint> improved_algorithm(const vector<pair<lint,lint>>& gaps, lint u, lint logu)
-    {
-        vector<vector<lint>> levels;
-        levels.push_back(vector<lint>()); // Indexes are shift amounts -> 0-indexing since smallest shift is 0
-        for(lint k = 1; k <= logu; k++){
-            vector<lint> level((1 << (k-1)));
-            levels.push_back(level);
-        }
-
-        for(lint k = 1; k <= logu; k++){
-            vector<lint> deltaC((1 << k) + 1); // Twice the length of level k, plus 1 to have half-open endpoints
-            for(auto gap : gaps){
-                lint l = gap.first;
-                lint r = gap.second; // Exclusive end
-
-                // The smallest $a$ shift is the one that translates r-1 to 2^(k-1)
-                // r - 1 + a = 2^(k-1)
-                // -> a = 2^(k-1) + 1 - r
-                lint x = (1 << (k-1)) + 1 - r;
-                x = mod0(x, (1 << (k-1)));
-                lint len = (r-l);
-                len = min(len, lint(1 << (k-1)) );
-                lint y = x + len; // Exclusive end
-                deltaC[x]++;
-                deltaC[y]--;
-            }
-
-            lint csum = 0;
-            for(lint i = 0; i < (1 << k); i++){
-                csum += deltaC[i];
-                levels[k][mod0(i, 1 << (k-1))] += csum;
-            }
-
-            if(k > 1){
-                for(lint i = 0; i < (1 << (k-1)); i++){
-                    levels[k][i] += levels[k-1][mod0(i, (1 << (k-2)))];
-                }
-            }
-        }
-
-        auto min_it = min_element(levels[logu].begin(), levels[logu].end());
-        lint argmin = min_it - levels[logu].begin();
-        return {*min_it, argmin};
-    }
-
-    lint mod1(lint n, lint mod){
-        while(n < 1) n += mod;
-        return (n - 1) % mod + 1;
-    }
-
-    lint mod0(lint n, lint mod){
-        while(n < 0) n += mod;
-        return n % mod;
-    }
+private:
+    lint best_shift, best_cost;
+    lint U;
+    vector< vector<lint> > S; /* input sets */
 };
 
 #endif
