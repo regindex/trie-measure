@@ -114,10 +114,10 @@ int main(int argc, char* argv[]){
     {
         cout << "estimating trie measure..." << endl;
         trieEncoding enc(cin);
-        enc.compute_best_shift(arg.grammar);
+        enc.compute_best_shift(arg.grammar,arg.all);
 
         cout << "no. of sets = " << enc.no_sets() << endl;
-        if(arg.all){ enc.print_all_costs(); }
+        if(arg.all){ /*enc.print_all_costs();/* }
         else
         {
             if(arg.getEncoding)
