@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
-#include "common.h"
+#include "common.hpp"
 
 using namespace std;
 
