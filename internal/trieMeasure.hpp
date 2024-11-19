@@ -104,6 +104,7 @@ public:
 
         void extend( void ) {
             root = reallocate_node(root,root,root);
+            node[root].val = 0;
             height = height+1;
         }
 
@@ -140,7 +141,7 @@ public:
             if( u != -1 ) {
                 node[u].ref--;
                 w.min    = node[u].min;
-                w.argmin = node[u].min;
+                w.argmin = node[u].argmin;
                 w.val    = node[u].val;
             } else {
                 w.val = w.min = w.argmin = 0;
